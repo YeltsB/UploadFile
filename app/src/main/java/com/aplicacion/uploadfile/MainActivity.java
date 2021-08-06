@@ -24,17 +24,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+import com.loopj.android.http.*;
 
 import net.gotev.uploadservice.MultipartUploadRequest;
 import net.gotev.uploadservice.UploadNotificationConfig;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.UUID;
+
+import cz.msebera.android.httpclient.entity.mime.Header;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -44,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private EditText editText;
 
-    public static final String UPLOAD_URL = "https://httpbin.org/post";
+    public static final String UPLOAD_URL = "http://3.128.217.135:1880/api/carga/archivos";
 
 
     //Pdf request code
@@ -85,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * We need the full pdf path and the name for the pdf in this method
      * */
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(api = Build.VERSION_CODES.P)
     public void uploadMultipart() {
         //getting name for the image
         String name = editText.getText().toString().trim();
@@ -105,16 +109,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else {
             //Uploading code
             try {
+                /*
                 String uploadId = UUID.randomUUID().toString();
-
                 //Creating a multi part request
                 new MultipartUploadRequest(this, uploadId, UPLOAD_URL)
                         .addFileToUpload(path, "pdf") //Adding file
                         .addParameter("name", name) //Adding text parameter to the request
-                        .setNotificationConfig(new UploadNotificationConfig())
-                        .setMaxRetries(2)
+                      //  .setNotificationConfig(new UploadNotificationConfig())
+                        //.setMaxRetries(2)
                         .startUpload(); //Starting the upload
-
+                */
+                enviarArchivo(UPLOAD_URL,path);
             } catch (Exception exc) {
                 Toast.makeText(this, exc.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -133,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //handling the image chooser activity result
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -179,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onClick(View v) {
         if (v == buttonChoose) {
@@ -190,5 +195,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    public void enviarArchivo(String url, String path){
+        // gather your request parameters
+        File myFile = new File(path);
+        RequestParams params = new RequestParams();
+        try {
+            params.put("myfile", myFile);
+        } catch(FileNotFoundException e) {}
 
+    // send request
+            AsyncHttpClient client = new AsyncHttpClient();
+            client.post(url, params, new AsyncHttpResponseHandler() {
+
+                @Override
+                public void onStart() {
+                    // called before request is started
+                    Toast.makeText(getApplicationContext(), "Iniciando el proceso de carga ", Toast.LENGTH_LONG).show();
+
+                }
+
+                @Override
+                public void onSuccess(int statusCode, cz.msebera.android.httpclient.Header[] headers, byte[] responseBody) {
+                    Toast.makeText(getApplicationContext(), "Correcto Codigo: "+ String.valueOf(statusCode), Toast.LENGTH_LONG).show();
+
+                }
+
+                @Override
+                public void onFailure(int statusCode, cz.msebera.android.httpclient.Header[] headers, byte[] responseBody, Throwable error) {
+                    Toast.makeText(getApplicationContext(), "Error Codigo: "+ String.valueOf(statusCode), Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onRetry(int retryNo) {
+                    Toast.makeText(getApplicationContext(), "Codigo recibido: "+ String.valueOf(retryNo), Toast.LENGTH_LONG).show();                }
+        });
+    }
 }
